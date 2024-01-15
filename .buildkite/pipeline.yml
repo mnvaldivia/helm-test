@@ -1,0 +1,24 @@
+steps:
+  - label: "Publish runner image"
+    key: publish_runner
+    plugins:
+      - ssh://git@code.hq.twilio.com/twilio/docker-buildkite-plugin.git#$TWILIO_DOCKER_PLUGIN_VERSION:
+          action: build_and_publish
+          buildkit: true
+          target: runner
+          cache_from:
+            - registry.twilio.com/twilio-internal/usp-forge:${BUILDKITE_BRANCH}-cache
+            - registry.twilio.com/twilio-internal/usp-forge:main-cache
+          additional_tags:
+            - ${BUILDKITE_BRANCH}-cache
+
+  - label: "Tag RELEASE_VERSION image"
+    if: build.tag != null
+    env:
+      RELEASE_VERSION: ${BUILDKITE_TAG}
+      RELEASE: ${BUILDKITE_TAG}
+    plugins:
+      - ssh://git@code.hq.twilio.com/twilio/bump-version-buildkite-plugin.git#$TWILIO_BUMP_VERSION_PLUGIN_VERSION:
+          action: tag
+    depends_on:
+      - publish_runner
